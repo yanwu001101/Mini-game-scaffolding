@@ -5,7 +5,7 @@ import { PlatMgr } from "./common/platform/PlatMgr";
 import { BaseWin } from "./common/windows/BaseWin";
 import { WindowsMgr } from "./common/windows/WindowsMgr";
 import { recordMgr } from "./common/platform/RecordMgr";
-import Mvc from "./common/mvc/Mvc";
+import HomeWnd from "./script/HomeWnd";
 
 /**
  * 3.x 引导脚本（挂场景运行）
@@ -54,10 +54,9 @@ export class Main extends Laya.Script {
 
     /**
      * 框架就绪，游戏逻辑从这里开始。
-     * 打开第一个全屏场景：WindowsMgr.Instance.openWindow(YourHomeWnd);
      */
     private onFrameworkReady(): void {
         console.log("framework ready");
-        Mvc.Send("FRAMEWORK_READY");
+        HomeWnd.open();
     }
 }
