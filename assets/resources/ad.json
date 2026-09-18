@@ -1,0 +1,55 @@
+{
+	"pc": {
+		"appId": "appId",
+		"showBoxTime": "2023-09-01 19:00:00",
+		"showTime": "2023-09-01 19:00:00",
+		"mediaId": "",
+		"splash": "splash",
+		"bannerLoopTime": 30,
+		"banner": [
+			"banner1",
+			"banner2"
+		],
+		"video": "video",
+		"nativeOther": [
+			"native1",
+			"native2",
+			"native3"
+		],
+		"nativePause": [
+			"native1",
+			"native2",
+			"native3"
+		],
+		"nativeResult": [
+			"native1",
+			"native2",
+			"native3"
+		],
+		"insert": [
+			"insert1",
+			"insert2"
+		],
+		"cdn": "",
+		"author": "著作权人:有限公司",
+		"authorId": "著作权号:123456789",
+		"company": "隐私壳子公司 主要针对ov Rpk",
+		"age": "16"
+	},
+	"vivoRpk": {},
+	"vivoApk": {
+		"mediaId": ""
+	},
+	"oppoRpk": {},
+	"oppoApk": {},
+	"hwRpk": {},
+	"hwApk": {},
+	"tt": {},
+	"wx": {},
+	"ch233Apk": {},
+	"tapApk": {},
+	"mmyApk": {},
+	"ryApk": {},
+	"xmApk": {},
+	"topOnApk": {}
+}

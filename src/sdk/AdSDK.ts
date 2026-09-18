@@ -99,8 +99,8 @@ export default abstract class AdSDK {
                 this.m_boxShowTime = new Date(this.adData.showBoxTime).getTime();
             }
         }).catch((e) => {
-            console.warn("resources/ad.json 未找到，广告参数使用默认值", e);
-            this.dataLoadComplete();
+            //与 2.x 行为一致：配置缺失时不回调 dataLoadComplete，广告功能静默降级
+            console.warn("resources/ad.json 未找到，广告功能不可用", e);
         });
 
         this.getLimitCity();
