@@ -76,7 +76,7 @@ export default class HomeWnd extends BaseWin {
     private createButton(text: string, y: number): Laya.Button {
         let btn = new Laya.Button("resources/layaAir.png", text);
         btn.labelColors = "#ffffff";
-        btn.labelFontSize = 28;
+        btn.labelSize = 28;
         btn.sizeGrid = "10,10,10,10";
         btn.size(240, 70);
         btn.centerX = 0;
