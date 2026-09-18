@@ -91,8 +91,10 @@ export default abstract class AdSDK {
 
     constructor() {
         Laya.loader.load("resources/ad.json").then((data) => {
-            this.m_adSdkData = data;
-            console.log("广告参数:" + this.m_adSdkData);
+            //3.x 加载 json 返回 TextResource 壳，数据在其 .data 字段；兼容直接返回原始对象的情况
+            let json = data && typeof data === "object" && data.data !== undefined && !(Array.isArray(data)) ? data.data : data;
+            this.m_adSdkData = json;
+            console.log("广告参数:" + JSON.stringify(this.m_adSdkData));
             this.dataLoadComplete();
             this.company = this.adData.company;
             if (this.adData.showBoxTime) {
