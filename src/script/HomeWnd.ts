@@ -1,52 +1,81 @@
-/**
- * 示例主页窗口（替代原 fgui HomeWnd）
- * 用纯 Laya UI 组件构建，演示 BaseWin 窗口系统 + MVC 事件 + 存档链路。
- * 项目已启用 laya.ui 模块（PlayerSettings.modules.laya.ui），可直接用 Label/Button。
- */
+const { regClass } = Laya;
+
 import { BaseWin } from "../common/windows/BaseWin";
 import { WindowsMgr } from "../common/windows/WindowsMgr";
 import { dataMgr } from "../GameData";
 import Mvc from "../common/mvc/Mvc";
 import Const from "../Const";
 import { Tips } from "../common/utils/Tips";
+import { PlatMgr, PlatType } from "../common/platform/PlatMgr";
+import { Native } from "../common/platform/Native";
+import { UiKit } from "./UiKit";
+import GameLoadingWnd from "./GameLoadingWnd";
+import GameWnd from "./GameWnd";
+import YsWnd from "./YsWnd";
 
+/**
+ * 主页窗口（原 fgui 版 HomeWnd），场景脚本：挂载于 resources/ui/scene/HomeWnd.ls 根节点
+ * 页面结构在 IDE 场景中编辑，代码负责：按平台显隐圆钮（沿用 2.x 逻辑）、按钮事件、
+ * 金币/体力演示刷新（MVC + 存档链路）。
+ */
+@regClass()
 export default class HomeWnd extends BaseWin {
+    /**窗口场景文件（WindowsMgr 据此加载场景并取出本组件） */
+    static sceneURL: string = "resources/ui/scene/HomeWnd.ls";
+
     private coinLabel: Laya.Label;
     private powerLabel: Laya.Label;
 
     constructor() {
         super();
-        this.isFullScene = true;
+        this.isFullWindow = true;
         this.showEffect = false;
     }
 
     protected onConstruct(): void {
-        //背景
-        let bg = new Laya.Sprite();
-        bg.graphics.drawRect(0, 0, Laya.stage.designWidth, Laya.stage.designHeight, "#2b7ce9");
-        this.view.addChild(bg);
+        //开始游戏 → 游戏加载页 →（回调）GameWnd；原流程为 VideoBox 宝箱可选观看后进游戏
+        let startBtn = <Laya.Button>this.view.getChildByName("startBtn");
+        UiKit.pressEffect(startBtn);
+        startBtn.on(Laya.Event.CLICK, this, () => {
+            WindowsMgr.Instance.openWindow(GameLoadingWnd, {
+                handler: Laya.Handler.create(null, () => {
+                    WindowsMgr.Instance.openWindow(GameWnd);
+                })
+            });
+        });
 
-        //标题
-        let title = new Laya.Label("Mini-game Scaffolding");
-        title.fontSize = 48;
-        title.color = "#ffffff";
-        title.bold = true;
-        title.centerX = 0;
-        title.y = 160;
-        this.view.addChild(title);
+        //隐私协议（原 ysBtn）
+        let ysBtn = <Laya.Button>this.view.getChildByName("ysBtn");
+        UiKit.pressEffect(ysBtn);
+        ysBtn.on(Laya.Event.CLICK, this, () => {
+            YsWnd.open();
+        });
 
-        //金币 / 体力（随数据变化自动刷新）
-        this.coinLabel = this.createInfoLabel(280);
-        this.powerLabel = this.createInfoLabel(340);
+        //添加到桌面（原 tableBtn）/ 更多精彩（原 moreBtn）：同一位置按平台二选一
+        let tableBtn = <Laya.Button>this.view.getChildByName("tableBtn");
+        UiKit.pressEffect(tableBtn);
+        tableBtn.visible = PlatMgr.PLATFORM == PlatType.OppoRpk || PlatMgr.PLATFORM == PlatType.VivoRpk;
+        tableBtn.on(Laya.Event.CLICK, this, () => {
+            PlatMgr.installShortcut();
+        });
 
-        //加金币按钮
-        let addCoinBtn = this.createButton("金币 +100", 420);
+        let moreBtn = <Laya.Button>this.view.getChildByName("moreBtn");
+        UiKit.pressEffect(moreBtn);
+        moreBtn.visible = PlatMgr.PLATFORM == PlatType.OppoApk;
+        moreBtn.on(Laya.Event.CLICK, this, () => {
+            Native.jumpgamecenter();
+        });
+
+        //脚手架演示区：金币/体力随数据变化自动刷新（MVC + 存档链路）
+        this.coinLabel = <Laya.Label>this.view.getChildByName("coinLabel");
+        this.powerLabel = <Laya.Label>this.view.getChildByName("powerLabel");
+
+        let addCoinBtn = <Laya.Button>this.view.getChildByName("addCoinBtn");
         addCoinBtn.on(Laya.Event.CLICK, this, () => {
             dataMgr.Coin = dataMgr.Coin + 100;
         });
 
-        //用体力按钮
-        let usePowerBtn = this.createButton("消耗体力", 520);
+        let usePowerBtn = <Laya.Button>this.view.getChildByName("usePowerBtn");
         usePowerBtn.on(Laya.Event.CLICK, this, () => {
             if (dataMgr.usePower()) {
                 Tips.showTips("体力已消耗");
@@ -55,35 +84,11 @@ export default class HomeWnd extends BaseWin {
             }
         });
 
-        //清档按钮
-        let clearBtn = this.createButton("清空存档", 620);
+        let clearBtn = <Laya.Button>this.view.getChildByName("clearBtn");
         clearBtn.on(Laya.Event.CLICK, this, () => {
             dataMgr.clearData();
             Tips.showTips("存档已清空");
         });
-    }
-
-    private createInfoLabel(y: number): Laya.Label {
-        let label = new Laya.Label();
-        label.fontSize = 32;
-        label.color = "#ffec8b";
-        label.centerX = 0;
-        label.y = y;
-        this.view.addChild(label);
-        return label;
-    }
-
-    private createButton(text: string, y: number): Laya.Button {
-        let btn = new Laya.Button("resources/layaAir.png", text);
-        btn.labelColors = "#ffffff";
-        btn.labelSize = 28;
-        btn.sizeGrid = "10,10,10,10";
-        btn.size(240, 70);
-        btn.centerX = 0;
-        btn.y = y;
-        btn.labelBold = true;
-        this.view.addChild(btn);
-        return btn;
     }
 
     onShow(): void {
@@ -91,6 +96,7 @@ export default class HomeWnd extends BaseWin {
         Mvc.On(Const.MVC_CASH_CHANGE, this, this.refresh);
         Mvc.On(Const.MVC_POWER, this, this.refresh);
         this.refresh();
+        //渠道循环广告按需开启：PlatMgr.AdSdk.showLoopBanner();
     }
 
     onHide(): void {
@@ -104,7 +110,7 @@ export default class HomeWnd extends BaseWin {
         this.powerLabel.text = "体力: " + dataMgr.Power;
     }
 
-    /**入口：Main.onFrameworkReady 里调用 WindowsMgr.Instance.openWindow(HomeWnd); */
+    /**入口：LoadingWnd 开始按钮 */
     static open(): HomeWnd {
         return <HomeWnd>WindowsMgr.Instance.openWindow(HomeWnd);
     }

@@ -5,15 +5,13 @@ import { PlatMgr } from "./common/platform/PlatMgr";
 import { BaseWin } from "./common/windows/BaseWin";
 import { WindowsMgr } from "./common/windows/WindowsMgr";
 import { recordMgr } from "./common/platform/RecordMgr";
-import HomeWnd from "./script/HomeWnd";
+import LoadingWnd from "./script/LoadingWnd";
+import { TipsBar } from "./script/TipsBar";
 
 /**
  * 3.x 引导脚本（挂场景运行）
- * 迁移自 2.x 版 Main：去除 FairyGUI 初始化与 fgui 加载页，
- * 引擎初始化（Laya.init/场景加载）由 IDE 与启动场景完成，脚本只负责框架启动。
- *
- * 游戏入口：在 onFrameworkReady() 中打开自己的首个场景窗口，
- * 例如：WindowsMgr.Instance.openWindow(HomeWnd);
+ * 每个窗口页面是场景（assets/resources/ui/scene/*.ls），窗口类作为脚本组件挂在各自场景根节点，
+ * WindowsMgr 打开窗口时加载场景并取出组件；脚本只负责框架启动与首屏（LoadingWnd 启动流程）。
  */
 @regClass()
 export class Main extends Laya.Script {
@@ -57,6 +55,9 @@ export class Main extends Laya.Script {
      */
     private onFrameworkReady(): void {
         console.log("framework ready");
-        HomeWnd.open();
+        //全局提示条（原 fgui tipsComp），挂 stage 顶层
+        TipsBar.mount();
+        //启动流程：加载页（进度条+预加载）→ 首启隐私协议 → 开始按钮 → 主页
+        LoadingWnd.open();
     }
 }

@@ -1,11 +1,15 @@
 /**
- * 窗口基类（3.x 重写版）
- * 原 2.x 版本基于 FairyGUI GComponent，本次迁移去除 GUI 框架依赖，
- * 改用纯 Laya.Sprite 承载窗口，生命周期与窗口管理逻辑保持不变。
- * 子类在 onConstruct() 中用代码构建界面（或后续挂 IDE 预制体）。
+ * 窗口基类（Laya 组件版）
+ * 每个窗口页面是一个场景（assets/resources/ui/scene/*.ls），窗口类（BaseWin 子类）
+ * 作为脚本组件挂在场景根节点上（IDE 中可见），场景实例化后由 WindowsMgr 取出组件驱动。
+ *
+ * 职责：
+ * - 生命周期：createUI（接场景 owner、构建 wiring）→ addParent/onShow → onHide → dispose
+ * - 表现：全屏适配(setSize)、居中、模态遮罩、缓动出入场
+ * - 子类在 onConstruct() 里按名字查找节点并接线（结构在场景文件里编辑）
  */
-
 import { WindowsMgr } from "./WindowsMgr";
+
 export enum WindowType {
 	/**普通窗口 */
 	Window,
@@ -14,14 +18,16 @@ export enum WindowType {
 	/**全屏场景 */
 	FullScene
 }
-export class BaseWin {
+export class BaseWin extends Laya.Script {
 	/**窗口根容器，由 Main 引导时指定；未指定时挂到 stage 上 */
 	static rootLayer: Laya.Sprite;
+	/**各窗口场景文件地址（子类以 static 形式提供，WindowsMgr 加载场景后取组件实例化） */
+	static sceneURL: string;
 	/**
 	  * 生命周期结束
 	  */
 	public initialized: boolean = false;
-	/**预加载资源（url 或 {url} 对象数组） */
+	/**预加载资源（url 或 {url} 对象数组），打开窗口前由 WindowsMgr 预加载 */
 	public loaddata: any[];
 	// /**关闭是否清理 */
 	public closeDispose: boolean;
@@ -87,9 +93,13 @@ export class BaseWin {
 		return this.windowType == WindowType.Window;
 	}
 
-	/**该模块被创建完成后的回调函数*/
+	/**
+	 * 接管场景根节点并完成首次接线（WindowsMgr 实例化场景后调用，仅一次）。
+	 * this.owner 即场景根节点（场景上挂的窗口脚本，引擎自动赋值 owner）。
+	 */
 	public createUI(): void {
-		this.view = new Laya.Sprite();
+		if (this.initialized) return;
+		this.view = this.owner as Laya.Sprite;
 		if (this.isModel && this.parentDisplay) {
 			this.modelObj = new Laya.Sprite();
 			this.modelObj.size(this.parentDisplay.width + 2, this.parentDisplay.height + 2);
@@ -121,7 +131,7 @@ export class BaseWin {
 
 	}
 
-	/**按名字查找子节点（等价原 fgui getChild 的常用场景） */
+	/**按名字查找子节点（场景结构在 IDE 中编辑，代码按 name 取用） */
 	getChild(name: string): Laya.Sprite {
 		return this.view ? <Laya.Sprite>this.view.getChildByName(name) : null;
 	}
@@ -183,8 +193,13 @@ export class BaseWin {
 
 		if (!this.isFullScene) {
 			if (this.showEffect) {
-				this.view.pivotX = this.view.width / 2;
-				this.view.pivotY = this.view.height / 2;
+				//以窗口中心为基准缩放入场；设置 pivot 会平移渲染位置，需同步补偿 x/y
+				let w = this.view.width;
+				let h = this.view.height;
+				this.view.pivotX = w / 2;
+				this.view.pivotY = h / 2;
+				this.view.x += w / 2;
+				this.view.y += h / 2;
 				this.view.scaleX = this.view.scaleY = 0.8;
 				Laya.Tween.clearAll(this.view);
 				Laya.Tween.to(this.view, { scaleX: 1, scaleY: 1 }, 200, Laya.Ease.backOut, Laya.Handler.create(this, this.tweenShowComp));

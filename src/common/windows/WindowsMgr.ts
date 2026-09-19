@@ -1,7 +1,8 @@
 /**
  * 窗口管理类（3.x 适配版）
- * 去除 FairyGUI 包加载分支（FguiLoadMgr），资源预加载改用 3.x Promise loader；
- * 窗口栈/全屏场景/返回导航逻辑与 2.x 版一致。
+ * 每个窗口页面是场景文件（UIClass.sceneURL 指向 .ls），窗口类作为脚本组件挂在场景根节点上；
+ * 打开窗口 = 加载场景 → 实例化 → getComponent 取出窗口组件 → 走原有窗口栈流程。
+ * 资源预加载改用 3.x Promise loader；窗口栈/全屏场景/返回导航逻辑与 2.x 版一致。
  */
 import { BaseWin } from "./BaseWin";
 import { Native } from "../platform/Native";
@@ -25,6 +26,11 @@ export class WindowsMgr {
 
     /**弹出窗口 */
     public currentFullScene: BaseWin;
+
+    /**场景未加载好时的排队开门请求 [UIClass, uiOpenData, isback][] */
+    private pendingOpens: any[][] = [];
+    private loadingScene: boolean = false;
+
     public openWindow(UIClass: any, uiOpenData: any = null, isback: boolean = false): BaseWin {
         var win: BaseWin = this.getWindow(UIClass);
         if (win) {
@@ -50,8 +56,22 @@ export class WindowsMgr {
             // win.onShow();
             return this.loadwin;
         }
-        win = new UIClass();
-        win.UIClass = UIClass;
+        //场景未就绪：排队等加载完成后重试
+        if (!Laya.loader.getRes(UIClass.sceneURL)) {
+            this.pendingOpens.push([UIClass, uiOpenData, isback]);
+            if (!this.loadingScene) {
+                this.loadingScene = true;
+                Laya.loader.load(UIClass.sceneURL).then(() => {
+                    this.loadingScene = false;
+                    this.flushPendingOpens();
+                }).catch((err) => {
+                    this.loadingScene = false;
+                    console.error("[WindowsMgr] 窗口场景加载失败: " + UIClass.sceneURL, err);
+                });
+            }
+            return null;
+        }
+        win = this.createWin(UIClass);
         win.uiOpenData = uiOpenData;
 
         if (win.isFullScene && this.currentFullScene && this.currentFullScene && this.currentFullScene.view) {
@@ -59,6 +79,25 @@ export class WindowsMgr {
         } else this.showwin(win, isback);
         // win.onShow();
         return win;
+    }
+
+    /**实例化场景并取出挂在根节点上的窗口组件 */
+    private createWin(UIClass: any): BaseWin {
+        let pre = <Laya.Prefab>Laya.loader.getRes(UIClass.sceneURL);
+        let scene = <Laya.Sprite>pre.create();
+        let win = <BaseWin>scene.getComponent(UIClass);
+        if (!win) {
+            throw new Error("[WindowsMgr] 场景未挂载窗口脚本: " + UIClass.sceneURL + " -> " + UIClass.name);
+        }
+        win.UIClass = UIClass;
+        return win;
+    }
+
+    private flushPendingOpens(): void {
+        while (this.pendingOpens.length > 0) {
+            let req = this.pendingOpens.shift();
+            this.openWindow(req[0], req[1], req[2]);
+        }
     }
     private showwin(win: BaseWin, isback: boolean) {
         if (win.loaddata && win.loaddata.length > 0) {

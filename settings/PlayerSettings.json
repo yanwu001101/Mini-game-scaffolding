@@ -4,6 +4,6 @@
         "laya.d3": true
     },
     "addons": {
-        "laya.ui": "ui2"
+        "laya.ui": "ui"
     }
 }
